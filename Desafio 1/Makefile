@@ -1,6 +1,10 @@
-main:
+aquecimento:
 	mkdir -p bin
-	nvcc main.cu -o bin/main
+	nvcc aquecimento.cu -o bin/aquecimento
+
+matriz:
+	mkdir -p bin
+	nvcc matriz.cu -o bin/matriz
 
 complex:
 	mkdir -p bin
