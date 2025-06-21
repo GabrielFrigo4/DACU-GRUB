@@ -8,11 +8,11 @@ matriz:
 
 complex:
 	mkdir -p bin
-	nvcc complex.cu -o bin/complex
+	nvcc "2. complex.cu" -o bin/complex
 
 simple:
 	mkdir -p bin
-	nvcc simple.cu -o bin/simple
+	nvcc "1. simple.cu" -o bin/simple
 
 clear:
 	rm -r -f bin

@@ -2,41 +2,21 @@
 #include <iomanip>
 #include <cuda_runtime.h>
 
-// Maneira complexa da mat_mul_device
-template <int BLOCK_SIZE>
-__global__ void mat_mul_device(float *C, const float *A, const float *B, const int N) {
-	int bx = blockIdx.x, by = blockIdx.y;
-	int tx = threadIdx.x, ty = threadIdx.y;
+// Maneira simples da mat_mul_device
+__global__ void mat_mul_device(float* C, const float* A, const float* B, const int N) {
+	int row = blockIdx.y * blockDim.y + threadIdx.y;
+	int col = blockIdx.x * blockDim.x + threadIdx.x;
 
-	int row = by * BLOCK_SIZE + ty;
-	int col = bx * BLOCK_SIZE + tx;
-
-	float Csub = 0;
-
-	for (int m = 0; m < (N + BLOCK_SIZE - 1) / BLOCK_SIZE; ++m) {
-		__shared__ float As[BLOCK_SIZE][BLOCK_SIZE];
-		__shared__ float Bs[BLOCK_SIZE][BLOCK_SIZE];
-
-		int aRow = row, aCol = m * BLOCK_SIZE + tx;
-		int bRow = m * BLOCK_SIZE + ty, bCol = col;
-
-		As[ty][tx] = (aRow < N && aCol < N) ? A[aRow * N + aCol] : 0.0f;
-		Bs[ty][tx] = (bRow < N && bCol < N) ? B[bRow * N + bCol] : 0.0f;
-
-		__syncthreads();
-
-		for (int k = 0; k < BLOCK_SIZE; ++k)
-			Csub += As[ty][k] * Bs[k][tx];
-
-		__syncthreads();
+	if (row < N && col < N) {
+		float sum = 0.0f;
+		for (int k = 0; k < N; ++k) {
+			sum += A[row * N + k] * B[k * N + col];
+		}
+		C[row * N + col] = sum;
 	}
-
-	if (row < N && col < N)
-		C[row * N + col] = Csub;
 }
 
-
-// Maneira complexa da mat_mul_host
+// Maneira simples da mat_mul_host
 template <int BLOCK_SIZE>
 void mat_mul_host(float* h_C, const float* h_A, const float* h_B, const int N) {
 	// Alocar matrizes no device (GPU)
@@ -54,7 +34,7 @@ void mat_mul_host(float* h_C, const float* h_A, const float* h_B, const int N) {
 	dim3 numBlocks((N + BLOCK_SIZE - 1) / BLOCK_SIZE, (N + BLOCK_SIZE - 1) / BLOCK_SIZE);
 
 	// Lançar kernel
-	mat_mul_device<BLOCK_SIZE><<<numBlocks, threadsPerBlock>>>(d_C, d_A, d_B, N);
+	mat_mul_device<<<numBlocks, threadsPerBlock>>>(d_C, d_A, d_B, N);
 	cudaDeviceSynchronize();
 
 	// Copiar resultado de volta
